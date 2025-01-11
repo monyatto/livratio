@@ -7,6 +7,8 @@ gem "propshaft"
 gem "pg", "~> 1.1"
 gem "puma", ">= 5.0"
 gem "tzinfo-data", platforms: %i[ windows jruby ]
+gem "slim-rails"
+gem "slim_lint"
 gem "solid_cache"
 gem "solid_queue"
 gem "kamal", require: false
