@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>livratio - 画像比率変換</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@400;500;700&display=swap" rel="stylesheet">
+    <link rel="icon" type="image/png" href="img/favicon.png">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <header>
+        <h1><ruby>livratio<rp>(</rp><rt>リヴレシオ</rt><rp>)</rp></ruby></h1>
+    </header>
+    <div class="container">
+        <p class="subtitle" id="description">縦長画像をX投稿用にいい感じの比率にします</p>
+
+        <div class="example-images" id="exampleImages">
+            <div class="example-item">
+                <span>Before</span>
+                <img src="img/編集前.jpg" alt="編集前">
+            </div>
+            <span class="example-arrow">→</span>
+            <div class="example-item">
+                <span>After</span>
+                <img src="img/編集後.jpg" alt="編集後">
+            </div>
+        </div>
+
+        <main>
+            <!-- アップロードエリア -->
+            <div class="upload-area" id="uploadArea">
+                <input type="file" id="fileInput" accept="image/*" hidden>
+                <div class="upload-content">
+                    <svg class="upload-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                        <polyline points="17 8 12 3 7 8"/>
+                        <line x1="12" y1="3" x2="12" y2="15"/>
+                    </svg>
+                    <p>タップして画像を選択</p>
+                </div>
+            </div>
+
+            <!-- 処理中表示 -->
+            <div class="processing" id="processing" hidden>
+                <div class="spinner"></div>
+                <p>処理中...</p>
+            </div>
+
+            <!-- プレビューエリア -->
+            <div class="preview-area" id="previewArea" hidden>
+                <div class="preview-container">
+                    <img id="previewImage" alt="プレビュー">
+                </div>
+                <div class="image-info" id="imageInfo"></div>
+                <div class="button-group">
+                    <button class="btn btn-primary" id="downloadBtn">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                            <polyline points="7 10 12 15 17 10"/>
+                            <line x1="12" y1="15" x2="12" y2="3"/>
+                        </svg>
+                        ダウンロード
+                    </button>
+                    <button class="btn btn-secondary" id="resetBtn">
+                        別の画像を選択
+                    </button>
+                </div>
+            </div>
+        </main>
+
+        <!-- 非表示のCanvas -->
+        <canvas id="canvas" hidden></canvas>
+    </div>
+
+    <footer class="site-footer">
+        <p>©️ 2026 <a href="https://x.com/___pan_papan" target="_blank" rel="noopener noreferrer">ぱん</a></p>
+    </footer>
+
+    <script src="app.js"></script>
+</body>
+</html>
