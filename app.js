@@ -15,7 +15,7 @@ const exampleImages = document.getElementById('exampleImages');
 const TARGET_RATIO = 3 / 4; // 幅:高さ = 3:4
 const MAX_WIDTH = 960;
 const MAX_HEIGHT = 1280;
-const BLUR_RADIUS = 20;
+const BLUR_RADIUS = 7;
 
 // 処理結果を保持
 let processedImageDataUrl = null;
@@ -192,29 +192,75 @@ function drawBlurredBackground(originalImage, finalWidth, finalHeight, imageX, i
         );
     }
 
-    // ぼかしを適用（段階的縮小→拡大方式で全ブラウザ対応）
-    const passes = 4;
-    let currentCanvas = tempCanvas;
-    for (let i = 0; i < passes; i++) {
-        const stepCanvas = document.createElement('canvas');
-        const stepCtx = stepCanvas.getContext('2d');
-        stepCanvas.width = Math.max(1, Math.round(currentCanvas.width / 2));
-        stepCanvas.height = Math.max(1, Math.round(currentCanvas.height / 2));
-        stepCtx.imageSmoothingEnabled = true;
-        stepCtx.imageSmoothingQuality = 'high';
-        stepCtx.drawImage(currentCanvas, 0, 0, stepCanvas.width, stepCanvas.height);
-        currentCanvas = stepCanvas;
+    // ボックスブラー×3回でぼかしを適用（ガウシアンブラーの近似、全ブラウザ対応）
+    const imageData = tempCtx.getImageData(0, 0, finalWidth, finalHeight);
+    boxBlur(imageData, finalWidth, finalHeight, BLUR_RADIUS);
+    boxBlur(imageData, finalWidth, finalHeight, BLUR_RADIUS);
+    boxBlur(imageData, finalWidth, finalHeight, BLUR_RADIUS);
+    tempCtx.putImageData(imageData, 0, 0);
+    ctx.drawImage(tempCanvas, 0, 0, finalWidth, finalHeight);
+}
+
+/**
+ * ボックスブラー（水平→垂直）
+ */
+function boxBlur(imageData, width, height, radius) {
+    const src = new Uint8ClampedArray(imageData.data);
+    const dst = imageData.data;
+    const diameter = 2 * radius + 1;
+
+    // 水平方向
+    for (let y = 0; y < height; y++) {
+        let ri = 0, gi = 0, bi = 0, ai = 0;
+        // 初期ウィンドウ（左端をradius分繰り返して端処理）
+        for (let i = -radius; i <= radius; i++) {
+            const x = Math.min(width - 1, Math.max(0, i));
+            const p = (y * width + x) * 4;
+            ri += src[p]; gi += src[p + 1]; bi += src[p + 2]; ai += src[p + 3];
+        }
+        for (let x = 0; x < width; x++) {
+            const p = (y * width + x) * 4;
+            dst[p] = ri / diameter;
+            dst[p + 1] = gi / diameter;
+            dst[p + 2] = bi / diameter;
+            dst[p + 3] = ai / diameter;
+            // ウィンドウをスライド：右端を追加、左端を除去
+            const addX = Math.min(width - 1, x + radius + 1);
+            const remX = Math.max(0, x - radius);
+            const addP = (y * width + addX) * 4;
+            const remP = (y * width + remX) * 4;
+            ri += src[addP] - src[remP];
+            gi += src[addP + 1] - src[remP + 1];
+            bi += src[addP + 2] - src[remP + 2];
+            ai += src[addP + 3] - src[remP + 3];
+        }
     }
 
-    // 縮小画像を元サイズに拡大
-    const blurredCanvas = document.createElement('canvas');
-    const blurredCtx = blurredCanvas.getContext('2d');
-    blurredCanvas.width = tempCanvas.width;
-    blurredCanvas.height = tempCanvas.height;
-    blurredCtx.imageSmoothingEnabled = true;
-    blurredCtx.imageSmoothingQuality = 'high';
-    blurredCtx.drawImage(currentCanvas, 0, 0, blurredCanvas.width, blurredCanvas.height);
-    ctx.drawImage(blurredCanvas, 0, 0, finalWidth, finalHeight);
+    // 垂直方向（dstを入力として使う）
+    src.set(dst);
+    for (let x = 0; x < width; x++) {
+        let ri = 0, gi = 0, bi = 0, ai = 0;
+        for (let i = -radius; i <= radius; i++) {
+            const y = Math.min(height - 1, Math.max(0, i));
+            const p = (y * width + x) * 4;
+            ri += src[p]; gi += src[p + 1]; bi += src[p + 2]; ai += src[p + 3];
+        }
+        for (let y = 0; y < height; y++) {
+            const p = (y * width + x) * 4;
+            dst[p] = ri / diameter;
+            dst[p + 1] = gi / diameter;
+            dst[p + 2] = bi / diameter;
+            dst[p + 3] = ai / diameter;
+            const addY = Math.min(height - 1, y + radius + 1);
+            const remY = Math.max(0, y - radius);
+            const addP = (addY * width + x) * 4;
+            const remP = (remY * width + x) * 4;
+            ri += src[addP] - src[remP];
+            gi += src[addP + 1] - src[remP + 1];
+            bi += src[addP + 2] - src[remP + 2];
+            ai += src[addP + 3] - src[remP + 3];
+        }
+    }
 }
 
 /**
