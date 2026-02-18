@@ -180,13 +180,28 @@ function drawBlurredBackground(originalImage, finalWidth, finalHeight, scaledOri
         padding, padding + blurHeight, blurWidth, padding
     );
 
-    // ぼかしを適用
+    // ぼかしを適用（段階的縮小→拡大方式で全ブラウザ対応）
+    const passes = 5;
+    let currentCanvas = tempCanvas;
+    for (let i = 0; i < passes; i++) {
+        const stepCanvas = document.createElement('canvas');
+        const stepCtx = stepCanvas.getContext('2d');
+        stepCanvas.width = Math.max(1, Math.round(currentCanvas.width / 2));
+        stepCanvas.height = Math.max(1, Math.round(currentCanvas.height / 2));
+        stepCtx.imageSmoothingEnabled = true;
+        stepCtx.imageSmoothingQuality = 'high';
+        stepCtx.drawImage(currentCanvas, 0, 0, stepCanvas.width, stepCanvas.height);
+        currentCanvas = stepCanvas;
+    }
+
+    // 縮小画像を元サイズに拡大
     const blurredCanvas = document.createElement('canvas');
     const blurredCtx = blurredCanvas.getContext('2d');
     blurredCanvas.width = tempCanvas.width;
     blurredCanvas.height = tempCanvas.height;
-    blurredCtx.filter = `blur(${BLUR_RADIUS}px)`;
-    blurredCtx.drawImage(tempCanvas, 0, 0);
+    blurredCtx.imageSmoothingEnabled = true;
+    blurredCtx.imageSmoothingQuality = 'high';
+    blurredCtx.drawImage(currentCanvas, 0, 0, blurredCanvas.width, blurredCanvas.height);
 
     // 拡大画像の中央からオフセットを計算
     const offsetX = (blurWidth - scaledOrigWidth) / 2;
