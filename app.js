@@ -16,7 +16,6 @@ const TARGET_RATIO = 3 / 4; // 幅:高さ = 3:4
 const MAX_WIDTH = 960;
 const MAX_HEIGHT = 1280;
 const BLUR_RADIUS = 20;
-const SCALE_FACTOR = 1.1; // 110%
 
 // 処理結果を保持
 let processedImageDataUrl = null;
@@ -91,11 +90,11 @@ function processImage(originalImage) {
     let finalWidth, finalHeight;
 
     if (currentRatio > TARGET_RATIO) {
-        // 横長すぎる場合（すでに3:4より横長）→ 高さを基準に幅を計算
-        finalHeight = origHeight;
-        finalWidth = Math.round(origHeight * TARGET_RATIO);
+        // 横長画像は幅基準で高さを拡張し、全体を保持する
+        finalWidth = origWidth;
+        finalHeight = Math.round(origWidth / TARGET_RATIO);
     } else {
-        // 縦長または3:4未満の場合 → 高さを基準に3:4になるよう幅を拡張
+        // 縦長画像は高さ基準で幅を拡張し、全体を保持する
         finalHeight = origHeight;
         finalWidth = Math.round(origHeight * TARGET_RATIO);
     }
@@ -109,28 +108,27 @@ function processImage(originalImage) {
         finalHeight = Math.round(finalHeight * scale);
     }
 
-    // 元画像をfinalHeightに合わせてリサイズした場合のサイズ
-    const imageScale = finalHeight / origHeight;
+    // 元画像をトリミングせずに3:4内へ収める
+    const imageScale = Math.min(finalWidth / origWidth, finalHeight / origHeight);
     const scaledOrigWidth = Math.round(origWidth * imageScale);
-    const scaledOrigHeight = finalHeight;
+    const scaledOrigHeight = Math.round(origHeight * imageScale);
 
-    // 左右に追加する幅を計算
-    const totalPadding = finalWidth - scaledOrigWidth;
-    const leftPadding = Math.floor(totalPadding / 2);
-    const rightPadding = totalPadding - leftPadding;
+    // 余白位置を中央揃えで計算
+    const imageX = Math.floor((finalWidth - scaledOrigWidth) / 2);
+    const imageY = Math.floor((finalHeight - scaledOrigHeight) / 2);
 
     // Canvasサイズ設定
     canvas.width = finalWidth;
     canvas.height = finalHeight;
 
-    // 背景用の拡大・ぼかし画像を描画
-    drawBlurredBackground(originalImage, finalWidth, finalHeight, scaledOrigWidth, scaledOrigHeight, leftPadding, rightPadding);
+    // 背景用のぼかし画像を描画（元画像の端を等倍で貼り付け）
+    drawBlurredBackground(originalImage, finalWidth, finalHeight, imageX, imageY, scaledOrigWidth, scaledOrigHeight);
 
     // 中央に元画像を描画
     ctx.drawImage(
         originalImage,
-        leftPadding,
-        0,
+        imageX,
+        imageY,
         scaledOrigWidth,
         scaledOrigHeight
     );
@@ -143,45 +141,59 @@ function processImage(originalImage) {
 /**
  * ぼかし背景を描画
  */
-function drawBlurredBackground(originalImage, finalWidth, finalHeight, scaledOrigWidth, scaledOrigHeight, leftPadding, rightPadding) {
-    // 拡大サイズ（110%）
-    const blurWidth = Math.round(scaledOrigWidth * SCALE_FACTOR);
-    const blurHeight = Math.round(scaledOrigHeight * SCALE_FACTOR);
-
-    // 端の黒い影を防ぐため、余白を追加したCanvasを作成
-    const padding = BLUR_RADIUS * 2;
+function drawBlurredBackground(originalImage, finalWidth, finalHeight, imageX, imageY, scaledOrigWidth, scaledOrigHeight) {
     const tempCanvas = document.createElement('canvas');
     const tempCtx = tempCanvas.getContext('2d');
-    tempCanvas.width = blurWidth + padding * 2;
-    tempCanvas.height = blurHeight + padding * 2;
+    tempCanvas.width = finalWidth;
+    tempCanvas.height = finalHeight;
 
-    // 中央に画像を描画
-    tempCtx.drawImage(originalImage, padding, padding, blurWidth, blurHeight);
+    // 中央に元画像を等倍で描画
+    tempCtx.drawImage(originalImage, imageX, imageY, scaledOrigWidth, scaledOrigHeight);
 
-    // 端を画像の端のピクセルで埋める（左右）
-    // 左端
-    tempCtx.drawImage(originalImage,
-        0, 0, 1, originalImage.height,  // ソース：左端1px
-        0, padding, padding, blurHeight  // 描画先
-    );
-    // 右端
-    tempCtx.drawImage(originalImage,
-        originalImage.width - 1, 0, 1, originalImage.height,
-        padding + blurWidth, padding, padding, blurHeight
-    );
-    // 上端
-    tempCtx.drawImage(originalImage,
-        0, 0, originalImage.width, 1,
-        padding, 0, blurWidth, padding
-    );
-    // 下端
-    tempCtx.drawImage(originalImage,
-        0, originalImage.height - 1, originalImage.width, 1,
-        padding, padding + blurHeight, blurWidth, padding
-    );
+    // 左余白：元画像の左端部分を切り取って貼り付け
+    if (imageX > 0) {
+        // 元画像からソースとして左端imageX分を取得
+        const srcWidth = Math.ceil(imageX / scaledOrigWidth * originalImage.width);
+        tempCtx.drawImage(
+            originalImage,
+            0, 0, srcWidth, originalImage.height,
+            0, imageY, imageX, scaledOrigHeight
+        );
+    }
+
+    // 右余白：元画像の右端部分を切り取って貼り付け
+    const rightStart = imageX + scaledOrigWidth;
+    const rightPadding = finalWidth - rightStart;
+    if (rightPadding > 0) {
+        const srcWidth = Math.ceil(rightPadding / scaledOrigWidth * originalImage.width);
+        tempCtx.drawImage(
+            originalImage,
+            originalImage.width - srcWidth, 0, srcWidth, originalImage.height,
+            rightStart, imageY, rightPadding, scaledOrigHeight
+        );
+    }
+
+    // 上余白：上端のピクセルで埋める
+    if (imageY > 0) {
+        tempCtx.drawImage(
+            tempCanvas,
+            0, imageY, finalWidth, 1,
+            0, 0, finalWidth, imageY
+        );
+    }
+
+    // 下余白：下端のピクセルで埋める
+    const bottomStart = imageY + scaledOrigHeight;
+    if (bottomStart < finalHeight) {
+        tempCtx.drawImage(
+            tempCanvas,
+            0, bottomStart - 1, finalWidth, 1,
+            0, bottomStart, finalWidth, finalHeight - bottomStart
+        );
+    }
 
     // ぼかしを適用（段階的縮小→拡大方式で全ブラウザ対応）
-    const passes = 5;
+    const passes = 4;
     let currentCanvas = tempCanvas;
     for (let i = 0; i < passes; i++) {
         const stepCanvas = document.createElement('canvas');
@@ -202,35 +214,7 @@ function drawBlurredBackground(originalImage, finalWidth, finalHeight, scaledOri
     blurredCtx.imageSmoothingEnabled = true;
     blurredCtx.imageSmoothingQuality = 'high';
     blurredCtx.drawImage(currentCanvas, 0, 0, blurredCanvas.width, blurredCanvas.height);
-
-    // 拡大画像の中央からオフセットを計算
-    const offsetX = (blurWidth - scaledOrigWidth) / 2;
-    const offsetY = (blurHeight - scaledOrigHeight) / 2;
-
-    // 左側のぼかし背景（元画像の下に少し隠れるように余分に描画）
-    if (leftPadding > 0) {
-        const overlap = BLUR_RADIUS;
-        ctx.drawImage(
-            blurredCanvas,
-            padding, padding + offsetY,
-            leftPadding + offsetX + overlap, blurHeight - offsetY * 2,
-            0, 0,
-            leftPadding + overlap, finalHeight
-        );
-    }
-
-    // 右側のぼかし背景（元画像の下に少し隠れるように余分に描画）
-    if (rightPadding > 0) {
-        const overlap = BLUR_RADIUS;
-        const sourceX = padding + blurWidth - rightPadding - offsetX - overlap;
-        ctx.drawImage(
-            blurredCanvas,
-            sourceX, padding + offsetY,
-            rightPadding + offsetX + overlap, blurHeight - offsetY * 2,
-            finalWidth - rightPadding - overlap, 0,
-            rightPadding + overlap, finalHeight
-        );
-    }
+    ctx.drawImage(blurredCanvas, 0, 0, finalWidth, finalHeight);
 }
 
 /**

@@ -115,12 +115,22 @@ main {
     display: flex;
     align-items: center;
     justify-content: center;
+    width: 100%;
+    font: inherit;
+    color: inherit;
+    line-height: 1.4;
+    appearance: none;
 }
 
 .upload-area:hover,
 .upload-area:active {
     border-color: var(--primary-color);
     background: rgba(74, 144, 217, 0.05);
+}
+
+.upload-area:focus-visible {
+    outline: 3px solid rgba(232, 135, 58, 0.35);
+    outline-offset: 2px;
 }
 
 .upload-area.dragover {
@@ -141,7 +151,7 @@ main {
     color: var(--text-secondary);
 }
 
-.upload-content p {
+.upload-content span {
     font-size: 15px;
     color: var(--text-secondary);
 }

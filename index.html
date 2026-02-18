@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>livratio - 画像比率変換</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -31,17 +31,17 @@
 
         <main>
             <!-- アップロードエリア -->
-            <div class="upload-area" id="uploadArea">
-                <input type="file" id="fileInput" accept="image/*" hidden>
-                <div class="upload-content">
-                    <svg class="upload-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <input type="file" id="fileInput" accept="image/*" hidden>
+            <button type="button" class="upload-area" id="uploadArea" aria-describedby="description">
+                <span class="upload-content">
+                    <svg class="upload-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
                         <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
                         <polyline points="17 8 12 3 7 8"/>
                         <line x1="12" y1="3" x2="12" y2="15"/>
                     </svg>
-                    <p>タップして画像を選択</p>
-                </div>
-            </div>
+                    <span>タップして画像を選択</span>
+                </span>
+            </button>
 
             <!-- 処理中表示 -->
             <div class="processing" id="processing" hidden>
