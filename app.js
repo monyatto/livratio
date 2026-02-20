@@ -15,7 +15,7 @@ const exampleImages = document.getElementById('exampleImages');
 const TARGET_RATIO = 3 / 4; // 幅:高さ = 3:4
 const MAX_WIDTH = 960;
 const MAX_HEIGHT = 1280;
-const BLUR_RADIUS = 7;
+const BLUR_RADIUS = 10;
 
 // 処理結果を保持
 let processedImageDataUrl = null;
